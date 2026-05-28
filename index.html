@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Formulari i Filtres</title>
+    <title>Dashboard - Formulari i Distribució</title>
     <style>
         /* 1. CONFIGURACIÓ GLOBAL */
         * {
@@ -50,6 +50,15 @@
             font-weight: 700;
             color: #0f172a;
             margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 700;
+            margin: 24px 0 12px 0;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         /* 2. ESTILS DEL FORMULARI */
@@ -99,11 +108,7 @@
             background-color: #1d4ed8;
         }
 
-        /* ==========================================================================
-           3. NOUS ESTILS: FILTRE I BLOCS KPI (ZONA DRETA)
-           ========================================================================== */
-        
-        /* Barra del Filtre Superior */
+        /* 3. ESTILS: FILTRE I BLOCS KPI */
         .filter-section {
             background: #f8fafc;
             padding: 12px 16px;
@@ -127,7 +132,6 @@
             font-size: 13px;
         }
 
-        /* Fila de Targetes KPI (Grisos com a la foto) */
         .kpi-row {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -155,6 +159,44 @@
             font-weight: 700;
             color: #0f172a;
         }
+
+        /* 4. ESTILS: GRÀFIC DE BARRES HORITZONTALS */
+        .dist-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        .dist-label {
+            width: 80px;
+            color: #475569;
+            font-weight: 500;
+        }
+
+        .dist-bar-wrapper {
+            flex: 1;
+            background: #e2e8f0;
+            height: 12px;
+            border-radius: 6px;
+            margin: 0 12px;
+            overflow: hidden;
+        }
+
+        .dist-bar-fill {
+            background: #2563eb;
+            height: 100%;
+            width: 0%;
+            border-radius: 6px;
+            transition: width 0.4s ease;
+        }
+
+        .dist-count {
+            width: 25px;
+            text-align: right;
+            font-weight: 600;
+            color: #334155;
+        }
     </style>
 </head>
 <body>
@@ -164,7 +206,7 @@
     <div class="column-left">
         <h2>Formulari d'enquesta</h2>
         
-        <form id="surveyForm" onsubmit="event.preventDefault(); alert('Ressenya enviada temporalment!');">
+        <form id="surveyForm">
             <div class="form-group">
                 <label for="groupSelect">Grup</label>
                 <select id="groupSelect" class="form-control" required>
@@ -175,8 +217,8 @@
             </div>
 
             <div class="form-group">
-                <label for="ratingInput">Satisfacció global (1-5) - Opcional</label>
-                <input type="number" id="ratingInput" class="form-control" min="1" max="5" placeholder="Ex: 4">
+                <label for="ratingInput">Satisfacció global (1-5)</label>
+                <input type="number" id="ratingInput" class="form-control" min="1" max="5" value="4" required>
             </div>
 
             <button type="submit" class="btn-submit">Guardar resposta</button>
@@ -207,4 +249,137 @@
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">% 4 o 5</div>
-                <div class="kpi-value" id="
+                <div class="kpi-value" id="kpiPositivePct">58.3%</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Grup analitzat</div>
+                <div class="kpi-value" id="kpiGroup" style="color: #2563eb;">DAW1A</div>
+            </div>
+        </div>
+
+        <div class="section-title">Distribució de valoracions</div>
+        <div id="distributionContainer">
+            <div class="dist-row">
+                <div class="dist-label">5 estrelles</div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill" id="bar5"></div></div>
+                <div class="dist-count" id="count5">0</div>
+            </div>
+            <div class="dist-row">
+                <div class="dist-label">4 estrelles</div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill" id="bar4"></div></div>
+                <div class="dist-count" id="count4">0</div>
+            </div>
+            <div class="dist-row">
+                <div class="dist-label">3 estrelles</div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill" id="bar3"></div></div>
+                <div class="dist-count" id="count3">0</div>
+            </div>
+            <div class="dist-row">
+                <div class="dist-label">2 estrelles</div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill" id="bar2"></div></div>
+                <div class="dist-count" id="count2">0</div>
+            </div>
+            <div class="dist-row">
+                <div class="dist-label">1 estrelles</div>
+                <div class="dist-bar-wrapper"><div class="dist-bar-fill" id="bar1"></div></div>
+                <div class="dist-count" id="count1">0</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // Memòria local / Base de dades del programa
+    const mockDatabase = [
+        { group: 'DAW1A', rating: 5 }, { group: 'DAW1A', rating: 5 }, { group: 'DAW1A', rating: 5 },
+        { group: 'DAW1A', rating: 4 }, { group: 'DAW1A', rating: 4 }, { group: 'DAW1A', rating: 4 }, { group: 'DAW1A', rating: 4 },
+        { group: 'DAW1A', rating: 3 }, { group: 'DAW1A', rating: 3 }, { group: 'DAW1A', rating: 3 },
+        { group: 'DAW1A', rating: 2 }, { group: 'DAW1A', rating: 2 },
+        
+        { group: 'DAW1B', rating: 5 }, { group: 'ASIX1', rating: 1 }
+    ];
+
+    // Capturar els elements HTML per interactuar
+    const form = document.getElementById('surveyForm');
+    const groupSelect = document.getElementById('groupSelect');
+    const ratingInput = document.getElementById('ratingInput');
+    const panelFilter = document.getElementById('panelFilter');
+
+    // Funció que calcula i pinta les dades al panell de la dreta
+    function updateDashboard() {
+        const selectedFilter = panelFilter.value;
+        
+        // 1. Filtrar array segons el curs seleccionat a la barra superior
+        const filteredData = selectedFilter === 'TOTS' 
+            ? mockDatabase 
+            : mockDatabase.filter(item => item.group === selectedFilter);
+        
+        const totalResponses = filteredData.length;
+        
+        // Actualitzar targetes de text bàsic
+        document.getElementById('kpiGroup').textContent = selectedFilter;
+        document.getElementById('kpiResponses').textContent = totalResponses;
+
+        if (totalResponses === 0) {
+            document.getElementById('kpiAverage').textContent = '0.00';
+            document.getElementById('kpiPositivePct').textContent = '0.0%';
+            for (let i = 1; i <= 5; i++) {
+                document.getElementById(`count${i}`).textContent = '0';
+                document.getElementById(`bar${i}`).style.width = '0%';
+            }
+            return;
+        }
+
+        // 2. Calcular la Mitjana Global
+        const sum = filteredData.reduce((acc, curr) => acc + curr.rating, 0);
+        const average = (sum / totalResponses).toFixed(2);
+        document.getElementById('kpiAverage').textContent = average;
+
+        // 3. Calcular el % d'èxit (notes 4 i 5)
+        const highRatings = filteredData.filter(item => item.rating === 4 || item.rating === 5).length;
+        const percentage = ((highRatings / totalResponses) * 100).toFixed(1);
+        document.getElementById('kpiPositivePct').textContent = `${percentage}%`;
+
+        // 4. Comptar vots per nivell i moure les barres blaves
+        const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+        filteredData.forEach(item => counts[item.rating]++);
+
+        for (let i = 1; i <= 5; i++) {
+            document.getElementById(`count${i}`).textContent = counts[i];
+            const barPct = ((counts[i] / totalResponses) * 100).toFixed(1);
+            document.getElementById(`bar${i}`).style.width = `${barPct}%`;
+        }
+    }
+
+    // ==========================================
+    // ESCULTADOR DEL FORMULARI (ZONA ESQUERRA)
+    // ==========================================
+    form.addEventListener('submit', function(event) {
+        event.preventDefault(); // Frena la recàrrega de la pàgina
+        
+        // Creem el nou objecte amb les teves dades triades
+        const newResponse = {
+            group: groupSelect.value,
+            rating: parseInt(ratingInput.value)
+        };
+
+        // El fiquem a dins de la llista de dades
+        mockDatabase.push(newResponse);
+
+        // Canvia automàticament el filtre del panell per veure el grup que acabes d'enviar
+        panelFilter.value = newResponse.group;
+
+        // Executem el recalculat de gràfics en calent
+        updateDashboard();
+    });
+
+    // Escultador del filtre del panell superior dret
+    panelFilter.addEventListener('change', updateDashboard);
+    
+    // Execució per defecte en obrir la web
+    updateDashboard();
+</script>
+
+</body>
+</html>
