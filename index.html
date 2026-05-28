@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Formulari i Panell</title>
+    <title>Dashboard - Formulari i Filtres</title>
     <style>
-        /* 1. CONFIGURACIÓ GLOBAL (Estètica de la captura) */
+        /* 1. CONFIGURACIÓ GLOBAL */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -14,7 +14,7 @@
         }
 
         body {
-            background-color: #f6f8fa; /* El gris clar de fons de la imatge */
+            background-color: #f6f8fa;
             padding: 24px;
             display: flex;
             justify-content: center;
@@ -22,7 +22,6 @@
             min-height: 100vh;
         }
 
-        /* Contenidor de dues zones */
         .main-container {
             width: 100%;
             max-width: 1300px;
@@ -30,7 +29,6 @@
             gap: 24px;
         }
 
-        /* Estil comú per a les dues columnes blanques */
         .column-left, .column-right {
             background: #ffffff;
             border: 1px solid #e2e8f0;
@@ -40,12 +38,11 @@
         }
 
         .column-left {
-            flex: 0 0 340px; /* Ample fix per al formulari de l'esquerra */
+            flex: 0 0 340px;
         }
 
         .column-right {
-            flex: 1; /* El panell de la dreta ocupa tot l'espai restant */
-            min-height: 400px; /* Alçada mínima temporal */
+            flex: 1;
         }
 
         h2 {
@@ -55,7 +52,7 @@
             margin-bottom: 20px;
         }
 
-        /* 2. ESTILS ESPECÍFICS DEL FORMULARI */
+        /* 2. ESTILS DEL FORMULARI */
         .form-group {
             margin-bottom: 18px;
         }
@@ -68,7 +65,6 @@
             margin-bottom: 6px;
         }
 
-        /* Inputs i Selects estilitzats com a la foto */
         .form-control {
             width: 100%;
             padding: 10px 12px;
@@ -80,14 +76,12 @@
             transition: border-color 0.2s, box-shadow 0.2s;
         }
 
-        /* Efecte blau corporatiu en fer clic */
         .form-control:focus {
             outline: none;
             border-color: #2563eb;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
         }
 
-        /* Botó blau intens de la captura */
         .btn-submit {
             width: 100%;
             background-color: #2563eb;
@@ -102,7 +96,64 @@
         }
 
         .btn-submit:hover {
-            background-color: #1d4ed8; /* Blau una mica més fosc al passar el ratolí */
+            background-color: #1d4ed8;
+        }
+
+        /* ==========================================================================
+           3. NOUS ESTILS: FILTRE I BLOCS KPI (ZONA DRETA)
+           ========================================================================== */
+        
+        /* Barra del Filtre Superior */
+        .filter-section {
+            background: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .filter-section label {
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+        }
+
+        .filter-select {
+            width: 180px;
+            padding: 6px 10px;
+            font-size: 13px;
+        }
+
+        /* Fila de Targetes KPI (Grisos com a la foto) */
+        .kpi-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 14px;
+        }
+
+        .kpi-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .kpi-value {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0f172a;
         }
     </style>
 </head>
@@ -113,8 +164,7 @@
     <div class="column-left">
         <h2>Formulari d'enquesta</h2>
         
-        <form id="surveyForm" onsubmit="event.preventDefault(); alert('Ressenya enviada correctament!');">
-            
+        <form id="surveyForm" onsubmit="event.preventDefault(); alert('Ressenya enviada temporalment!');">
             <div class="form-group">
                 <label for="groupSelect">Grup</label>
                 <select id="groupSelect" class="form-control" required>
@@ -135,10 +185,26 @@
 
     <div class="column-right">
         <h2>Panell d'analítica</h2>
-        <p style="color: #64748b; font-size: 14px; font-style: italic;">Preparat per al següent pas...</p>
-    </div>
+        
+        <div class="filter-section">
+            <label for="panelFilter">Filtre del panell:</label>
+            <select id="panelFilter" class="form-control filter-select">
+                <option value="TOTS">Tots els grups</option>
+                <option value="DAW1A" selected>DAW1A</option>
+                <option value="DAW1B">DAW1B</option>
+                <option value="ASIX1">ASIX1</option>
+            </select>
+        </div>
 
-</div>
-
-</body>
-</html>
+        <div class="kpi-row">
+            <div class="kpi-card">
+                <div class="kpi-title">Respostes</div>
+                <div class="kpi-value" id="kpiResponses">12</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">Mitjana</div>
+                <div class="kpi-value" id="kpiAverage">3.67</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-title">% 4 o 5</div>
+                <div class="kpi-value" id="
