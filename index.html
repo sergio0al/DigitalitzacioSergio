@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Pas 1</title>
+    <style>
+        /* 1. CONFIGURACIÓ GLOBAL (Estètica de la foto) */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: #f6f8fa; /* El gris clar de fons de la imatge */
+            padding: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        /* 2. CONTENIDOR PRINCIPAL (Distribució en dues zones) */
+        .main-container {
+            width: 100%;
+            max-width: 1400px;
+            display: flex;
+            gap: 24px; /* Espai entre columnes */
+        }
+
+        /* 3. COLUMNA ESQUERRA (Formulari - 30% d'ample aprox.) */
+        .left-column {
+            flex: 0 0 320px; /* Ample fix per al formulari, com a la foto */
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        /* 4. COLUMNA DRETA (Panell - Ocupa la resta de l'espai) */
+        .right-column {
+            flex: 1;
+            background-color: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        
+        <div class="left-column">
+            <h2>Formulari d'enquesta</h2>
+            </div>
+
+        <div class="right-column">
+            <h2>Panell d'analítica</h2>
+            </div>
+
+    </div>
+
+</body>
+</html>
