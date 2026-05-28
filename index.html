@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Formulari i Distribució</title>
+    <title>Dashboard - Formulari, Distribució i Comentaris</title>
     <style>
         /* 1. CONFIGURACIÓ GLOBAL */
         * {
@@ -89,6 +89,11 @@
             outline: none;
             border-color: #2563eb;
             box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+
+        textarea.form-control {
+            height: 80px;
+            resize: none;
         }
 
         .btn-submit {
@@ -197,6 +202,51 @@
             font-weight: 600;
             color: #334155;
         }
+
+        /* ==========================================================================
+           5. NOUS ESTILS: LLISTA DE COMENTARIS (FEED)
+           ========================================================================== */
+        .responses-feed {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            background: #fafafa;
+            padding: 8px;
+        }
+
+        .feed-item {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #16a34a; /* Borde verde por defecto para notas altas */
+            padding: 10px 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+
+        /* Modificadores de color según la puntuación */
+        .feed-item.neutral { border-left-color: #eab308; }  /* Amarillo (Nota 3) */
+        .feed-item.negative { border-left-color: #dc2626; } /* Rojo (Notas 1 i 2) */
+
+        .feed-item-header {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 4px;
+        }
+
+        .feed-item-date {
+            font-weight: 400;
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .feed-item-comment {
+            color: #475569;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
@@ -219,6 +269,11 @@
             <div class="form-group">
                 <label for="ratingInput">Satisfacció global (1-5)</label>
                 <input type="number" id="ratingInput" class="form-control" min="1" max="5" value="4" required>
+            </div>
+
+            <div class="form-group">
+                <label for="commentInput">Comentari (opcional)</label>
+                <textarea id="commentInput" class="form-control" placeholder="Escriu aquí la teva ressenya..."></textarea>
             </div>
 
             <button type="submit" class="btn-submit">Guardar resposta</button>
@@ -258,7 +313,7 @@
         </div>
 
         <div class="section-title">Distribució de valoracions</div>
-        <div id="distributionContainer">
+        <div id="distributionContainer" style="margin-bottom: 24px;">
             <div class="dist-row">
                 <div class="dist-label">5 estrelles</div>
                 <div class="dist-bar-wrapper"><div class="dist-bar-fill" id="bar5"></div></div>
@@ -285,39 +340,52 @@
                 <div class="dist-count" id="count1">0</div>
             </div>
         </div>
+
+        <div class="section-title">Últimes respostes amb comentari</div>
+        <div class="responses-feed" id="responsesFeed">
+            </div>
+
     </div>
 
 </div>
 
 <script>
-    // Memòria local / Base de dades del programa
+    // Base de dades que ara inclou comentaris i dates simulades de mostra
     const mockDatabase = [
-        { group: 'DAW1A', rating: 5 }, { group: 'DAW1A', rating: 5 }, { group: 'DAW1A', rating: 5 },
-        { group: 'DAW1A', rating: 4 }, { group: 'DAW1A', rating: 4 }, { group: 'DAW1A', rating: 4 }, { group: 'DAW1A', rating: 4 },
-        { group: 'DAW1A', rating: 3 }, { group: 'DAW1A', rating: 3 }, { group: 'DAW1A', rating: 3 },
-        { group: 'DAW1A', rating: 2 }, { group: 'DAW1A', rating: 2 },
+        { group: 'DAW1A', rating: 4, comment: 'La part pràctica ha estat força interessant.', date: '28/05/2026 16:30' },
+        { group: 'DAW1A', rating: 3, comment: 'Em va costar una mica seguir els gràfics finals.', date: '28/05/2026 15:45' },
+        { group: 'DAW1A', rating: 5, comment: 'Molt dinàmic i entenedor, repetiria sens dubte.', date: '28/05/2026 14:10' },
+        { group: 'DAW1A', rating: 4, comment: '', date: '28/05/2026 12:00' },
+        { group: 'DAW1A', rating: 4, comment: '', date: '28/05/2026 11:15' },
+        { group: 'DAW1A', rating: 4, comment: '', date: '28/05/2026 10:30' },
+        { group: 'DAW1A', rating: 3, comment: '', date: '27/05/2026 17:00' },
+        { group: 'DAW1A', rating: 3, comment: '', date: '27/05/2026 16:20' },
+        { group: 'DAW1A', rating: 2, comment: 'Massa contingut en molt poc temps.', date: '27/05/2026 15:00' },
+        { group: 'DAW1A', rating: 2, comment: '', date: '27/05/2026 11:00' },
+        { group: 'DAW1A', rating: 5, comment: '', date: '26/05/2026 14:00' },
+        { group: 'DAW1A', rating: 5, comment: '', date: '26/05/2026 09:30' },
         
-        { group: 'DAW1B', rating: 5 }, { group: 'ASIX1', rating: 1 }
+        { group: 'DAW1B', rating: 5, comment: 'Bon ritme general a l\'aula.', date: '28/05/2026 10:00' },
+        { group: 'ASIX1', rating: 1, comment: 'Massa teòric.', date: '28/05/2026 09:15' }
     ];
 
-    // Capturar els elements HTML per interactuar
     const form = document.getElementById('surveyForm');
     const groupSelect = document.getElementById('groupSelect');
     const ratingInput = document.getElementById('ratingInput');
+    const commentInput = document.getElementById('commentInput');
     const panelFilter = document.getElementById('panelFilter');
+    const responsesFeed = document.getElementById('responsesFeed');
 
-    // Funció que calcula i pinta les dades al panell de la dreta
     function updateDashboard() {
         const selectedFilter = panelFilter.value;
         
-        // 1. Filtrar array segons el curs seleccionat a la barra superior
+        // 1. Filtrar segons el curs
         const filteredData = selectedFilter === 'TOTS' 
             ? mockDatabase 
             : mockDatabase.filter(item => item.group === selectedFilter);
         
         const totalResponses = filteredData.length;
         
-        // Actualitzar targetes de text bàsic
         document.getElementById('kpiGroup').textContent = selectedFilter;
         document.getElementById('kpiResponses').textContent = totalResponses;
 
@@ -328,20 +396,21 @@
                 document.getElementById(`count${i}`).textContent = '0';
                 document.getElementById(`bar${i}`).style.width = '0%';
             }
+            responsesFeed.innerHTML = '<div style="font-size:12px;color:#64748b;font-style:italic;padding:10px;text-align:center;">No hi ha comentaris.</div>';
             return;
         }
 
-        // 2. Calcular la Mitjana Global
+        // 2. Mitjana
         const sum = filteredData.reduce((acc, curr) => acc + curr.rating, 0);
         const average = (sum / totalResponses).toFixed(2);
         document.getElementById('kpiAverage').textContent = average;
 
-        // 3. Calcular el % d'èxit (notes 4 i 5)
+        // 3. % de 4 o 5
         const highRatings = filteredData.filter(item => item.rating === 4 || item.rating === 5).length;
         const percentage = ((highRatings / totalResponses) * 100).toFixed(1);
         document.getElementById('kpiPositivePct').textContent = `${percentage}%`;
 
-        // 4. Comptar vots per nivell i moure les barres blaves
+        // 4. Barres de puntuació
         const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
         filteredData.forEach(item => counts[item.rating]++);
 
@@ -350,34 +419,67 @@
             const barPct = ((counts[i] / totalResponses) * 100).toFixed(1);
             document.getElementById(`bar${i}`).style.width = `${barPct}%`;
         }
+
+        // 5. NUEVA LÓGICA: Actualitzar i filtrar la llista de comentaris (Mostrant els que tenen text escrit)
+        responsesFeed.innerHTML = '';
+        const reviewsWithText = filteredData.filter(item => item.comment.trim() !== '');
+
+        if (reviewsWithText.length === 0) {
+            responsesFeed.innerHTML = '<div style="font-size:12px;color:#64748b;font-style:italic;padding:10px;text-align:center;">No hi ha comentaris escrits per a aquesta selecció.</div>';
+        } else {
+            reviewsWithText.forEach(item => {
+                const element = document.createElement('div');
+                
+                // Assignar classe de color segons la nota
+                let ratingClass = 'feed-item';
+                if (item.rating === 3) ratingClass += ' neutral';
+                if (item.rating < 3) ratingClass += ' negative';
+                
+                element.className = ratingClass;
+                element.innerHTML = `
+                    <div class="feed-item-header">
+                        <span>Puntuació: ${item.rating}/5 (${item.group})</span>
+                        <span class="feed-item-date">${item.date}</span>
+                    </div>
+                    <div class="feed-item-comment">"${item.comment}"</div>
+                `;
+                responsesFeed.appendChild(element); // Es fiquen en ordre (les més noves primer gràcies al unshift)
+            });
+        }
     }
 
-    // ==========================================
-    // ESCULTADOR DEL FORMULARI (ZONA ESQUERRA)
-    // ==========================================
+    // Guardar ressenya real de l'usuari
     form.addEventListener('submit', function(event) {
-        event.preventDefault(); // Frena la recàrrega de la pàgina
+        event.preventDefault();
         
-        // Creem el nou objecte amb les teves dades triades
+        // Obtenir data i hora de l'ordinador de forma maca
+        const now = new Date();
+        const formattedDate = now.toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
+                              now.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
+
         const newResponse = {
             group: groupSelect.value,
-            rating: parseInt(ratingInput.value)
+            rating: parseInt(ratingInput.value),
+            comment: commentInput.value.trim(),
+            date: formattedDate
         };
 
-        // El fiquem a dins de la llista de dades
-        mockDatabase.push(newResponse);
+        // Col·locar l'element AL PRINCIPI de la llista (perquè sigui la més recent)
+        mockDatabase.unshift(newResponse);
 
-        // Canvia automàticament el filtre del panell per veure el grup que acabes d'enviar
+        // Netejar la caixa de comentaris del formulari
+        commentInput.value = '';
+        ratingInput.value = '4';
+
+        // Enfocar el panell directament al curs enviat per veure l'efecte immediat
         panelFilter.value = newResponse.group;
 
-        // Executem el recalculat de gràfics en calent
         updateDashboard();
     });
 
-    // Escultador del filtre del panell superior dret
     panelFilter.addEventListener('change', updateDashboard);
     
-    // Execució per defecte en obrir la web
+    // Llançament inicial
     updateDashboard();
 </script>
 
