@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Formulariooo Comit de Prueba, Distribució i Comentaris</title>
+    <title>Dashboard - Formulari Comitè de Prova, Distribució i Comentaris</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        /* 1. CONFIGURACIÓ GLOBAL */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -61,7 +61,6 @@
             letter-spacing: 0.5px;
         }
 
-        /* 2. ESTILS DEL FORMULARI */
         .form-group {
             margin-bottom: 18px;
         }
@@ -109,11 +108,37 @@
             transition: background-color 0.2s;
         }
 
-        .btn-submit:hover {
-            background-color: #1d4ed8;
+        .btn-submit:hover { background-color: #1d4ed8; }
+        .btn-submit:disabled { background-color: #93c5fd; cursor: not-allowed; }
+
+        /* Missatge d'èxit */
+        .success-msg {
+            display: none;
+            background: #dcfce7;
+            border: 1px solid #86efac;
+            color: #166534;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 12px;
+            text-align: center;
         }
 
-        /* 3. ESTILS: FILTRE I BLOCS KPI */
+        /* Missatge d'error */
+        .error-msg {
+            display: none;
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            margin-top: 12px;
+            text-align: center;
+        }
+
         .filter-section {
             background: #f8fafc;
             padding: 12px 16px;
@@ -129,12 +154,22 @@
             font-size: 13px;
             font-weight: 600;
             color: #475569;
+            white-space: nowrap;
         }
 
         .filter-select {
             width: 180px;
             padding: 6px 10px;
             font-size: 13px;
+        }
+
+        /* Indicador de càrrega */
+        .loading-indicator {
+            font-size: 12px;
+            color: #64748b;
+            font-style: italic;
+            margin-left: auto;
+            display: none;
         }
 
         .kpi-row {
@@ -165,7 +200,6 @@
             color: #0f172a;
         }
 
-        /* 4. ESTILS: GRÀFIC DE BARRES HORITZONTALS */
         .dist-row {
             display: flex;
             align-items: center;
@@ -203,11 +237,8 @@
             color: #334155;
         }
 
-        /* ==========================================================================
-           5. NOUS ESTILS: LLISTA DE COMENTARIS (FEED)
-           ========================================================================== */
         .responses-feed {
-            max-height: 250px;
+            max-height: 280px;
             overflow-y: auto;
             border: 1px solid #e2e8f0;
             border-radius: 6px;
@@ -218,16 +249,16 @@
         .feed-item {
             background: #ffffff;
             border: 1px solid #e2e8f0;
-            border-left: 4px solid #16a34a; /* Borde verde por defecto para notas altas */
+            border-left: 4px solid #16a34a;
             padding: 10px 12px;
             border-radius: 4px;
             margin-bottom: 8px;
             font-size: 13px;
         }
 
-        /* Modificadores de color según la puntuación */
-        .feed-item.neutral { border-left-color: #eab308; }  /* Amarillo (Nota 3) */
-        .feed-item.negative { border-left-color: #dc2626; } /* Rojo (Notas 1 i 2) */
+        .feed-item:last-child { margin-bottom: 0; }
+        .feed-item.neutral { border-left-color: #eab308; }
+        .feed-item.negative { border-left-color: #dc2626; }
 
         .feed-item-header {
             display: flex;
@@ -247,6 +278,27 @@
             color: #475569;
             font-style: italic;
         }
+
+        /* Comptador de comentaris */
+        .comments-header {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            margin: 24px 0 12px 0;
+        }
+
+        .comments-header .section-title {
+            margin: 0;
+        }
+
+        .comments-badge {
+            font-size: 11px;
+            font-weight: 600;
+            background: #e2e8f0;
+            color: #475569;
+            padding: 2px 7px;
+            border-radius: 10px;
+        }
     </style>
 </head>
 <body>
@@ -260,8 +312,8 @@
             <div class="form-group">
                 <label for="groupSelect">Grup</label>
                 <select id="groupSelect" class="form-control" required>
-                    <option value="DAW1A">DAW1A</option>
-                    <option value="DAW1B">DAW1B</option>
+                    <option value="DAWA">DAWA</option>
+                    <option value="DAWB">DAWB</option>
                     <option value="ASIX1">ASIX1</option>
                 </select>
             </div>
@@ -276,7 +328,9 @@
                 <textarea id="commentInput" class="form-control" placeholder="Escriu aquí la teva ressenya..."></textarea>
             </div>
 
-            <button type="submit" class="btn-submit">Guardar resposta</button>
+            <button type="submit" class="btn-submit" id="btnSubmit">Guardar resposta</button>
+            <div class="success-msg" id="successMsg">✓ Resposta guardada correctament!</div>
+            <div class="error-msg" id="errorMsg">✗ Error al guardar. Torna-ho a intentar.</div>
         </form>
     </div>
 
@@ -287,28 +341,29 @@
             <label for="panelFilter">Filtre del panell:</label>
             <select id="panelFilter" class="form-control filter-select">
                 <option value="TOTS">Tots els grups</option>
-                <option value="DAW1A" selected>DAW1A</option>
-                <option value="DAW1B">DAW1B</option>
+                <option value="DAWA">DAWA</option>
+                <option value="DAWB">DAWB</option>
                 <option value="ASIX1">ASIX1</option>
             </select>
+            <span class="loading-indicator" id="loadingIndicator">Carregant...</span>
         </div>
 
         <div class="kpi-row">
             <div class="kpi-card">
                 <div class="kpi-title">Respostes</div>
-                <div class="kpi-value" id="kpiResponses">12</div>
+                <div class="kpi-value" id="kpiResponses">—</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Mitjana</div>
-                <div class="kpi-value" id="kpiAverage">3.67</div>
+                <div class="kpi-value" id="kpiAverage">—</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">% 4 o 5</div>
-                <div class="kpi-value" id="kpiPositivePct">58.3%</div>
+                <div class="kpi-value" id="kpiPositivePct">—</div>
             </div>
             <div class="kpi-card">
                 <div class="kpi-title">Grup analitzat</div>
-                <div class="kpi-value" id="kpiGroup" style="color: #2563eb;">DAW1A</div>
+                <div class="kpi-value" id="kpiGroup" style="color: #2563eb;">—</div>
             </div>
         </div>
 
@@ -335,39 +390,28 @@
                 <div class="dist-count" id="count2">0</div>
             </div>
             <div class="dist-row">
-                <div class="dist-label">1 estrelles</div>
+                <div class="dist-label">1 estrella</div>
                 <div class="dist-bar-wrapper"><div class="dist-bar-fill" id="bar1"></div></div>
                 <div class="dist-count" id="count1">0</div>
             </div>
         </div>
 
-        <div class="section-title">Últimes respostes amb comentari</div>
+        <div class="comments-header">
+            <div class="section-title">Últimes respostes amb comentari</div>
+            <span class="comments-badge" id="commentsBadge">0</span>
+        </div>
         <div class="responses-feed" id="responsesFeed">
-            </div>
+            <div style="font-size:12px;color:#64748b;font-style:italic;padding:10px;text-align:center;">Carregant dades...</div>
+        </div>
 
     </div>
 
 </div>
 
 <script>
-    // Base de dades que ara inclou comentaris i dates simulades de mostra
-    const mockDatabase = [
-        { group: 'DAW1A', rating: 4, comment: 'La part pràctica ha estat força interessant.', date: '28/05/2026 16:30' },
-        { group: 'DAW1A', rating: 3, comment: 'Em va costar una mica seguir els gràfics finals.', date: '28/05/2026 15:45' },
-        { group: 'DAW1A', rating: 5, comment: 'Molt dinàmic i entenedor, repetiria sens dubte.', date: '28/05/2026 14:10' },
-        { group: 'DAW1A', rating: 4, comment: '', date: '28/05/2026 12:00' },
-        { group: 'DAW1A', rating: 4, comment: '', date: '28/05/2026 11:15' },
-        { group: 'DAW1A', rating: 4, comment: '', date: '28/05/2026 10:30' },
-        { group: 'DAW1A', rating: 3, comment: '', date: '27/05/2026 17:00' },
-        { group: 'DAW1A', rating: 3, comment: '', date: '27/05/2026 16:20' },
-        { group: 'DAW1A', rating: 2, comment: 'Massa contingut en molt poc temps.', date: '27/05/2026 15:00' },
-        { group: 'DAW1A', rating: 2, comment: '', date: '27/05/2026 11:00' },
-        { group: 'DAW1A', rating: 5, comment: '', date: '26/05/2026 14:00' },
-        { group: 'DAW1A', rating: 5, comment: '', date: '26/05/2026 09:30' },
-        
-        { group: 'DAW1B', rating: 5, comment: 'Bon ritme general a l\'aula.', date: '28/05/2026 10:00' },
-        { group: 'ASIX1', rating: 1, comment: 'Massa teòric.', date: '28/05/2026 09:15' }
-    ];
+    const supabaseUrl = 'https://mcumkbuxzizqxagfibzf.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1jdW1rYnV4eml6cXhhZ2ZpYnpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MjEyOTgsImV4cCI6MjA5NjQ5NzI5OH0.TOYlZsGYoR8R383zJAs9HNBtOoYKG-1OJGQfOkXTvqo';
+    const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
     const form = document.getElementById('surveyForm');
     const groupSelect = document.getElementById('groupSelect');
@@ -375,44 +419,83 @@
     const commentInput = document.getElementById('commentInput');
     const panelFilter = document.getElementById('panelFilter');
     const responsesFeed = document.getElementById('responsesFeed');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const successMsg = document.getElementById('successMsg');
+    const errorMsg = document.getElementById('errorMsg');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const commentsBadge = document.getElementById('commentsBadge');
 
-    function updateDashboard() {
+    async function updateDashboard() {
         const selectedFilter = panelFilter.value;
-        
-        // 1. Filtrar segons el curs
-        const filteredData = selectedFilter === 'TOTS' 
-            ? mockDatabase 
-            : mockDatabase.filter(item => item.group === selectedFilter);
-        
-        const totalResponses = filteredData.length;
-        
-        document.getElementById('kpiGroup').textContent = selectedFilter;
+
+        // Mostrar indicador de càrrega
+        loadingIndicator.style.display = 'inline';
+        responsesFeed.style.opacity = '0.5';
+
+        // --- FIX PRINCIPAL: la query SEMPRE descarrega TOTES les columnes necessàries ---
+        // Inclou 'comentari' explícitament per garantir que no es filtra per null a nivell de BD
+        let query = _supabase
+            .from('respostes')
+            .select('grup, puntuacio, comentari, created_at')
+            .order('created_at', { ascending: false });
+
+        // Filtrar per grup NOMÉS si no és "TOTS"
+        if (selectedFilter !== 'TOTS') {
+            query = query.eq('grup', selectedFilter);
+        }
+
+        const { data: dbData, error } = await query;
+
+        loadingIndicator.style.display = 'none';
+        responsesFeed.style.opacity = '1';
+
+        // DEBUG: mostra a consola els valors rebuts
+        console.log(`[DEBUG] Filtre: "${selectedFilter}" | Respostes rebudes: ${dbData ? dbData.length : 0}`);
+        if (dbData && dbData.length > 0) {
+            console.log('[DEBUG] Valors únics de "grup" a la BD:', [...new Set(dbData.map(r => r.grup))]);
+            console.log('[DEBUG] Primera fila:', JSON.stringify(dbData[0]));
+        }
+
+        if (error) {
+            console.error('Error carregant dades de Supabase:', JSON.stringify(error));
+            const errorDetail = error.message || error.details || error.hint || error.code || JSON.stringify(error);
+            responsesFeed.innerHTML = `<div style="font-size:12px;color:#dc2626;padding:10px;text-align:center;">Error de connexió: ${errorDetail}</div>`;
+            return;
+        }
+
+        const totalResponses = dbData ? dbData.length : 0;
+
+        document.getElementById('kpiGroup').textContent = selectedFilter === 'TOTS' ? 'Tots' : selectedFilter;
         document.getElementById('kpiResponses').textContent = totalResponses;
 
         if (totalResponses === 0) {
-            document.getElementById('kpiAverage').textContent = '0.00';
-            document.getElementById('kpiPositivePct').textContent = '0.0%';
+            document.getElementById('kpiAverage').textContent = '—';
+            document.getElementById('kpiPositivePct').textContent = '—';
             for (let i = 1; i <= 5; i++) {
                 document.getElementById(`count${i}`).textContent = '0';
                 document.getElementById(`bar${i}`).style.width = '0%';
             }
-            responsesFeed.innerHTML = '<div style="font-size:12px;color:#64748b;font-style:italic;padding:10px;text-align:center;">No hi ha comentaris.</div>';
+            commentsBadge.textContent = '0';
+            responsesFeed.innerHTML = `<div style="font-size:12px;color:#64748b;font-style:italic;padding:10px;text-align:center;">
+                Cap resposta per a "${selectedFilter === 'TOTS' ? 'tots els grups' : selectedFilter}".
+            </div>`;
             return;
         }
 
-        // 2. Mitjana
-        const sum = filteredData.reduce((acc, curr) => acc + curr.rating, 0);
+        // Calcular KPIs
+        const sum = dbData.reduce((acc, curr) => acc + (curr.puntuacio || 0), 0);
         const average = (sum / totalResponses).toFixed(2);
         document.getElementById('kpiAverage').textContent = average;
 
-        // 3. % de 4 o 5
-        const highRatings = filteredData.filter(item => item.rating === 4 || item.rating === 5).length;
+        const highRatings = dbData.filter(item => item.puntuacio === 4 || item.puntuacio === 5).length;
         const percentage = ((highRatings / totalResponses) * 100).toFixed(1);
         document.getElementById('kpiPositivePct').textContent = `${percentage}%`;
 
-        // 4. Barres de puntuació
+        // Distribució de barres
         const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-        filteredData.forEach(item => counts[item.rating]++);
+        dbData.forEach(item => {
+            if (item.puntuacio >= 1 && item.puntuacio <= 5) counts[item.puntuacio]++;
+        });
 
         for (let i = 1; i <= 5; i++) {
             document.getElementById(`count${i}`).textContent = counts[i];
@@ -420,66 +503,103 @@
             document.getElementById(`bar${i}`).style.width = `${barPct}%`;
         }
 
-        // 5. NUEVA LÓGICA: Actualitzar i filtrar la llista de comentaris (Mostrant els que tenen text escrit)
+        // --- FIX COMENTARIS: comprovar amb != null i != '' ---
+        // Ara inclou respostes sense comentari visible com a "sense comentari"
+        const reviewsWithText = dbData.filter(item =>
+            item.comentari !== null &&
+            item.comentari !== undefined &&
+            item.comentari.toString().trim() !== ''
+        );
+
+        commentsBadge.textContent = reviewsWithText.length;
         responsesFeed.innerHTML = '';
-        const reviewsWithText = filteredData.filter(item => item.comment.trim() !== '');
 
         if (reviewsWithText.length === 0) {
-            responsesFeed.innerHTML = '<div style="font-size:12px;color:#64748b;font-style:italic;padding:10px;text-align:center;">No hi ha comentaris escrits per a aquesta selecció.</div>';
+            responsesFeed.innerHTML = `<div style="font-size:12px;color:#64748b;font-style:italic;padding:10px;text-align:center;">
+                Hi ha ${totalResponses} resposta${totalResponses !== 1 ? 'es' : ''}, però cap té comentari escrit.
+            </div>`;
         } else {
             reviewsWithText.forEach(item => {
                 const element = document.createElement('div');
-                
-                // Assignar classe de color segons la nota
+
                 let ratingClass = 'feed-item';
-                if (item.rating === 3) ratingClass += ' neutral';
-                if (item.rating < 3) ratingClass += ' negative';
-                
+                if (item.puntuacio === 3) ratingClass += ' neutral';
+                if (item.puntuacio < 3) ratingClass += ' negative';
+
+                const dateObj = new Date(item.created_at);
+                const formattedDate =
+                    dateObj.toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
+                    ' ' +
+                    dateObj.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
+
+                // Escapar el comentari per evitar XSS
+                const safeComment = item.comentari
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+
                 element.className = ratingClass;
                 element.innerHTML = `
                     <div class="feed-item-header">
-                        <span>Puntuació: ${item.rating}/5 (${item.group})</span>
-                        <span class="feed-item-date">${item.date}</span>
+                        <span>Puntuació: ${item.puntuacio}/5 (${item.grup})</span>
+                        <span class="feed-item-date">${formattedDate}</span>
                     </div>
-                    <div class="feed-item-comment">"${item.comment}"</div>
+                    <div class="feed-item-comment">"${safeComment}"</div>
                 `;
-                responsesFeed.appendChild(element); // Es fiquen en ordre (les més noves primer gràcies al unshift)
+                responsesFeed.appendChild(element);
             });
         }
     }
 
-    // Guardar ressenya real de l'usuari
-    form.addEventListener('submit', function(event) {
+    form.addEventListener('submit', async function(event) {
         event.preventDefault();
-        
-        // Obtenir data i hora de l'ordinador de forma maca
-        const now = new Date();
-        const formattedDate = now.toLocaleDateString('ca-ES', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' + 
-                              now.toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
 
+        const rating = parseInt(ratingInput.value);
+        if (isNaN(rating) || rating < 1 || rating > 5) {
+            alert('La puntuació ha de ser entre 1 i 5.');
+            return;
+        }
+
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = 'Guardant...';
+        successMsg.style.display = 'none';
+        errorMsg.style.display = 'none';
+
+        const commentValue = commentInput.value.trim();
         const newResponse = {
-            group: groupSelect.value,
-            rating: parseInt(ratingInput.value),
-            comment: commentInput.value.trim(),
-            date: formattedDate
+            grup: groupSelect.value,
+            puntuacio: rating,
+            // Enviar null explícitament si no hi ha comentari (evita strings buits a la BD)
+            comentari: commentValue !== '' ? commentValue : null
         };
 
-        // Col·locar l'element AL PRINCIPI de la llista (perquè sigui la més recent)
-        mockDatabase.unshift(newResponse);
+        const { error } = await _supabase
+            .from('respostes')
+            .insert([newResponse]);
 
-        // Netejar la caixa de comentaris del formulari
-        commentInput.value = '';
-        ratingInput.value = '4';
+        if (error) {
+            console.error('Error Supabase:', error);
+            errorMsg.style.display = 'block';
+            setTimeout(() => { errorMsg.style.display = 'none'; }, 4000);
+        } else {
+            commentInput.value = '';
+            ratingInput.value = '4';
+            successMsg.style.display = 'block';
+            setTimeout(() => { successMsg.style.display = 'none'; }, 3000);
 
-        // Enfocar el panell directament al curs enviat per veure l'efecte immediat
-        panelFilter.value = newResponse.group;
+            // Sincronitzar el filtre del panell amb el grup enviat
+            panelFilter.value = newResponse.grup;
+            await updateDashboard();
+        }
 
-        updateDashboard();
+        btnSubmit.disabled = false;
+        btnSubmit.textContent = 'Guardar resposta';
     });
 
     panelFilter.addEventListener('change', updateDashboard);
-    
-    // Llançament inicial
+
+    // Càrrega inicial mostrant TOTS els grups
     updateDashboard();
 </script>
 
