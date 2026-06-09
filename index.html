@@ -444,16 +444,16 @@
             query = query.eq('grup', selectedFilter);
         }
 
-        const { data: dbData, error } = await query;
+        const { data: rawData, error } = await query;
 
         loadingIndicator.style.display = 'none';
         responsesFeed.style.opacity = '1';
 
         // DEBUG: mostra a consola els valors rebuts
-        console.log(`[DEBUG] Filtre: "${selectedFilter}" | Respostes rebudes: ${dbData ? dbData.length : 0}`);
-        if (dbData && dbData.length > 0) {
-            console.log('[DEBUG] Valors únics de "grup" a la BD:', [...new Set(dbData.map(r => r.grup))]);
-            console.log('[DEBUG] Primera fila:', JSON.stringify(dbData[0]));
+        console.log(`[DEBUG] Filtre: "${selectedFilter}" | Files a la BD: ${rawData ? rawData.length : 0}`);
+        if (rawData && rawData.length > 0) {
+            console.log('[DEBUG] Valors únics de "grup" a la BD:', [...new Set(rawData.map(r => r.grup))]);
+            console.log('[DEBUG] Primera fila:', JSON.stringify(rawData[0]));
         }
 
         if (error) {
@@ -462,6 +462,19 @@
             responsesFeed.innerHTML = `<div style="font-size:12px;color:#dc2626;padding:10px;text-align:center;">Error de connexió: ${errorDetail}</div>`;
             return;
         }
+
+        // FILTRE ULTRA-ESTRICTE: 
+        // 1. L'objecte ha d'existir.
+        // 2. Ha de tenir una data de creació (evita files buides inserides manualment a Supabase).
+        // 3. La puntuació ha de ser un número entre 1 i 5.
+        // 4. El grup ha d'estar a la llista oficial.
+        const validGroups = ['DAWA', 'DAWB', 'ASIX1'];
+        const dbData = rawData ? rawData.filter(item => 
+            item && item.created_at && 
+            item.puntuacio >= 1 && 
+            item.puntuacio <= 5 && 
+            validGroups.includes(item.grup)
+        ) : [];
 
         const totalResponses = dbData ? dbData.length : 0;
 
